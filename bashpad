@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+#
+#
+#
+#
+
+source "./lib/note.sh" || exit 1
+source "./lib/bashpad.conf" || exit 1
+
+fatal() {
+    echo '[fatal]' "$@" >&2
+    exit 1
+}
+
+check_dependencies() {
+    if ! command -v gum >/dev/null 2>&1; then
+        printf 'Error: gum is not installed.\n' >&2
+        printf 'Install it from: https://github.com/charmbracelet/gum\n' >&2
+        exit 1
+    fi
+}
+
+main() {
+    local mode=""
+
+    if [ "$mode" == defualt ]; then
+        check_dependencies
+    fi
+}
