@@ -4,13 +4,14 @@
 #
 #
 
-source "./lib/note.sh" || exit 1
-source "./lib/bashpad.conf" || exit 1
-
 fatal() {
     echo '[fatal]' "$@" >&2
     exit 1
 }
+
+source "./lib/cli.sh" || fatal "could not load CLI library"
+source "./lib/config.sh" || fatal "could not load config library"
+source "./lib/tui.sh" || fatal "could not load TUI library"
 
 check_dependencies() {
     if ! command -v gum >/dev/null 2>&1; then
@@ -20,10 +21,32 @@ check_dependencies() {
     fi
 }
 
-main() {
-    local mode=""
-
-    if [ "$mode" == defualt ]; then
-        check_dependencies
-    fi
+run_cli() {
+    note "$@"
 }
+
+run_tui() {
+    check_dependencies
+    bash lib/tui.sh "$@"
+}
+
+main() {
+    if [ ! -f "$config_file" ]; then
+        create_default_config
+    else
+        load_config
+    fi
+
+    if [ ! -d "$notes_dir" ]; then
+        mkdir -p "$notes_dir" || fatal "could not create notes directory: $notes_dir"
+        find "$notes_dir" -type f -name "*.$file_extension"
+    fi
+
+    case "$mode" in
+    CLI) run_cli "$@" ;;
+    TUI) run_tui "$@" ;;
+    *) fatal "unsupported mode: $mode" ;;
+    esac
+}
+
+main "$@"

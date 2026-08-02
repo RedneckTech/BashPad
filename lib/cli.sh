@@ -134,7 +134,7 @@ note() {
         fi
     fi
 
-    local single_file="$NOTES_DIR/${notebook}.note.txt"
+    local single_file="$NOTES_DIR/${notebook}.note"
 
     # Build file list for read-only actions (list, search, delete, stats)
     local files=()
@@ -147,7 +147,7 @@ note() {
                 return 1
             fi
         else
-            for f in "$NOTES_DIR"/*.note.txt; do
+            for f in "$NOTES_DIR"/*.note; do
                 [[ -f "$f" && -r "$f" ]] && files+=("$f")
             done
         fi
@@ -335,7 +335,7 @@ note() {
 
     notebooks)
         local total=0
-        for f in "$NOTES_DIR"/*.note.txt; do
+        for f in "$NOTES_DIR"/*.note; do
             [[ -f "$f" ]] || continue
             local nb nb_count
             nb=$(basename "$f" .note.txt)
@@ -411,7 +411,9 @@ note() {
     esac
 }
 
-note "$@"
+if [[ "${BASH_SOURCE[0]}" == "$@" ]]; then
+    note "$@"
+fi
 
 # ----- completion -----
 _note_complete() {
@@ -424,7 +426,7 @@ _note_complete() {
         local notebooks=()
         for f in "$dir"/*.note.txt; do
             [[ -f "$f" ]] || continue
-            notebooks+=($(basename "$f" .note.txt))
+            notebooks+=($(basename "$f" .note))
         done
         COMPREPLY=($(compgen -W "${notebooks[*]}" -- "$cur"))
         return
@@ -452,4 +454,6 @@ _note_complete() {
     fi
 }
 
-complete -F _note_complete note
+if [[ "${BASH_SOURCE[0]}" == "$@" ]]; then
+    complete -F _note_complete note
+fi
