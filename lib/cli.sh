@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-NOTES_DIR="${NOTES_DIR:-$HOME/Notes}"
+notes_dir="${notes_dir:-$HOME/Notes}"
+file_extension="${file_extension:-note}"
 DEFAULT_NOTEBOOK="notes"
 
 if [[ -z "${NO_COLOR:-}" && -t 1 ]]; then
@@ -31,7 +32,7 @@ Options:
   -e              Open notebooks directory in \$EDITOR (or single notebook with -f)
   -h              Show this help
 
-Notebooks live in \$NOTES_DIR (~/Notes) as *.note.txt files.
+Notebooks live in \$notes_dir (~/Notes) as *.\${file_extension} files.
 List/search scan all notebooks unless narrowed with -f.
 
 Examples:
@@ -62,8 +63,8 @@ _clipboard_cmd() {
 }
 
 note() {
-    if [[ ! -d "$NOTES_DIR" ]] && ! mkdir -p "$NOTES_DIR" 2>/dev/null; then
-        echo "note: cannot create notes directory '$NOTES_DIR'" >&2
+    if [[ ! -d "$notes_dir" ]] && ! mkdir -p "$notes_dir" 2>/dev/null; then
+        echo "note: cannot create notes directory '$notes_dir'" >&2
         return 1
     fi
 
@@ -134,7 +135,7 @@ note() {
         fi
     fi
 
-    local single_file="$NOTES_DIR/${notebook}.note"
+    local single_file="$notes_dir/${notebook}.${file_extension}"
 
     # Build file list for read-only actions (list, search, delete, stats)
     local files=()
@@ -147,7 +148,7 @@ note() {
                 return 1
             fi
         else
-            for f in "$NOTES_DIR"/*.note; do
+            for f in "$notes_dir"/*."${file_extension}"; do
                 [[ -f "$f" && -r "$f" ]] && files+=("$f")
             done
         fi
@@ -335,10 +336,10 @@ note() {
 
     notebooks)
         local total=0
-        for f in "$NOTES_DIR"/*.note; do
+        for f in "$notes_dir"/*."${file_extension}"; do
             [[ -f "$f" ]] || continue
             local nb nb_count
-            nb=$(basename "$f" .note.txt)
+            nb=$(basename "$f" ."${file_extension}")
             nb_count=$(awk -v RS='' 'NF > 0 { n++ } END { print n+0 }' "$f")
             ((total += nb_count))
             printf "${c_cyan}%-20s${c_reset} ${c_dim}(%d)${c_reset}\n" "$nb" "$nb_count"
@@ -348,8 +349,8 @@ note() {
         else
             echo ""
             printf "${c_dim}%d notebook%s, %d total note%s${c_reset}\n" \
-                "$(find "$NOTES_DIR" -maxdepth 1 -name '*.note.txt' -type f 2>/dev/null | wc -l)" \
-                "$( (($(find "$NOTES_DIR" -maxdepth 1 -name '*.note.txt' -type f 2>/dev/null | wc -l) == 1)) && echo "" || echo "s")" \
+                "$(find "$notes_dir" -maxdepth 1 -name "*.${file_extension}" -type f 2>/dev/null | wc -l)" \
+                "$( (($(find "$notes_dir" -maxdepth 1 -name "*.${file_extension}" -type f 2>/dev/null | wc -l) == 1)) && echo "" || echo "s")" \
                 "$total" \
                 "$( ((total == 1)) && echo "" || echo "s")"
         fi
@@ -361,7 +362,7 @@ note() {
             return 0
         fi
         local nb_count
-        nb_count=$(find "$NOTES_DIR" -maxdepth 1 -name '*.note.txt' -type f 2>/dev/null | wc -l)
+        nb_count=$(find "$notes_dir" -maxdepth 1 -name "*.${file_extension}" -type f 2>/dev/null | wc -l)
         awk -v RS='' -v nb="$nb_count" "
             NF > 0 {
                 if (match(\$0, /date: [^\n]+/)) {
@@ -387,7 +388,7 @@ note() {
             exec tail -F "$single_file"
         else
             shopt -s nullglob
-            local wfiles=("$NOTES_DIR"/*.note.txt)
+            local wfiles=("$notes_dir"/*."${file_extension}")
             shopt -u nullglob
             if ((${#wfiles[@]} == 0)); then
                 echo "(no notebooks yet — create one with: note \"first note\")"
@@ -403,7 +404,7 @@ note() {
             [[ ! -f "$single_file" ]] && touch "$single_file"
             $editor "$single_file"
         else
-            $editor "$NOTES_DIR"
+            $editor "$notes_dir"
         fi
         ;;
 
@@ -419,30 +420,30 @@ fi
 _note_complete() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local prev="${COMP_WORDS[COMP_CWORD - 1]}"
-    local dir="${NOTES_DIR:-$HOME/Notes}"
+    local dir="${notes_dir:-$HOME/Notes}"
 
     case "$prev" in
     -f)
         local notebooks=()
-        for f in "$dir"/*.note.txt; do
+        for f in "$dir"/*."${file_extension}"; do
             [[ -f "$f" ]] || continue
-            notebooks+=($(basename "$f" .note))
+            notebooks+=($(basename "$f" ."${file_extension}"))
         done
         COMPREPLY=($(compgen -W "${notebooks[*]}" -- "$cur"))
         return
         ;;
     -T)
         local tags=()
-        if compgen -G "$dir/*.note.txt" >/dev/null 2>&1; then
-            tags=($(awk '/^tag: / { print $2 }' "$dir"/*.note.txt 2>/dev/null | sort -u))
+        if compgen -G "$dir/*.${file_extension}" >/dev/null 2>&1; then
+            tags=($(awk '/^tag: / { print $2 }' "$dir"/*."${file_extension}" 2>/dev/null | sort -u))
         fi
         COMPREPLY=($(compgen -W "${tags[*]}" -- "$cur"))
         return
         ;;
     -t)
         local tags=()
-        if compgen -G "$dir/*.note.txt" >/dev/null 2>&1; then
-            tags=($(awk '/^tag: / { print $2 }' "$dir"/*.note.txt 2>/dev/null | sort -u))
+        if compgen -G "$dir/*.${file_extension}" >/dev/null 2>&1; then
+            tags=($(awk '/^tag: / { print $2 }' "$dir"/*."${file_extension}" 2>/dev/null | sort -u))
         fi
         COMPREPLY=($(compgen -W "${tags[*]}" -- "$cur"))
         return

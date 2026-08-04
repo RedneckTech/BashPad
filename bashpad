@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-#
-#
-#
-#
 
 fatal() {
     echo '[fatal]' "$@" >&2
     exit 1
 }
 
-source "./lib/cli.sh" || fatal "could not load CLI library"
-source "./lib/config.sh" || fatal "could not load config library"
-source "./lib/tui.sh" || fatal "could not load TUI library"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+win_width=80
+win_height=40
+
+source "$SCRIPT_DIR/lib/config.sh" || fatal "could not load config library"
+source "$SCRIPT_DIR/lib/cli.sh" || fatal "could not load CLI library"
+source "$SCRIPT_DIR/lib/tui.sh" || fatal "could not load TUI library"
 
 check_dependencies() {
     if ! command -v gum >/dev/null 2>&1; then
@@ -26,8 +26,33 @@ run_cli() {
 }
 
 run_tui() {
+    shopt -s checkwinsize
+
     check_dependencies
-    bash lib/tui.sh "$@"
+    trap cleanup EXIT
+    trap window SIGWINCH
+
+    printf '\e[?1049h' # enable alternate buffer
+    printf '\e[?25l'   # hide cursor
+    printf '\e[H'      # move cursor home
+
+    if [[ -n $COLUMNS ]]; then
+        win_width=$COLUMNS
+    fi
+    if [[ -n $LINES ]]; then
+        win_height=$LINES
+    fi
+
+    window "$win_width" "$win_height"
+
+    while true; do
+        sleep 1
+    done
+}
+
+cleanup() {
+    printf '\e[?1049l'
+    printf '\e[?25h'
 }
 
 main() {
@@ -39,15 +64,16 @@ main() {
 
     if [ ! -d "$notes_dir" ]; then
         mkdir -p "$notes_dir" || fatal "could not create notes directory: $notes_dir"
-        find "$notes_dir" -type f -name "*.$file_extension"
     fi
 
     case "$mode" in
-    CLI) run_cli "$@" ;;
+    CLI)
+        run_cli "$@"
+        return 0
+        ;;
     TUI) run_tui "$@" ;;
     *) fatal "unsupported mode: $mode" ;;
     esac
-    window
 }
 
 main "$@"
