@@ -47,6 +47,7 @@ main() {
     TUI) run_tui "$@" ;;
     *) fatal "unsupported mode: $mode" ;;
     esac
+    window
 }
 
 main "$@"
